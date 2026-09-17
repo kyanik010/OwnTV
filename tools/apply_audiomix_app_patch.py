@@ -9,7 +9,7 @@ def patch(path: str, replacements: list[tuple[str, str]]) -> None:
     original = text
     for old, new in replacements:
         if old not in text:
-            raise SystemExit(f"AudioMix patch anchor not found in {path}: {old[:100]!r}")
+            raise SystemExit(f"AudioMix patch anchor not found in {path}: {old[:120]!r}")
         text = text.replace(old, new, 1)
     p.write_text(text, encoding="utf-8")
     print(f"patched {path}: {len(original)} -> {len(text)} bytes")
@@ -51,16 +51,8 @@ patch("app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt", [
         "    onMultiview: (() -> Unit)? = null, onRecordThis: (() -> Unit)? = null, recordingThis: Boolean = false,\n    audioMixEnabled: Boolean = false, onAudioMix: (() -> Unit)? = null,\n    onBack: () -> Unit, modifier: Modifier = Modifier,",
     ),
     (
-        "                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
-        "                        // AudioMix is rendered as a separate media action so the existing AUDIO\n                        // control keeps its normal track-dialog behaviour.\n                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
-    ),
-    (
-        "                            CtrlButton(OwnTVIcon.FAVORITE, active = favorite, activeTint = OwnTVTheme.colors.favorite, label = stringResource(R.string.player_tool_favorite)) { onToggleFavorite() }\n                        }\n                        if (onAudioMix != null) {\n                            CtrlButton(OwnTVIcon.AUDIO, active = audioMixEnabled, label = stringResource(R.string.player_tool_audio)) { onAudioMix() }\n                        }",
-        "                            CtrlButton(OwnTVIcon.FAVORITE, active = favorite, activeTint = OwnTVTheme.colors.favorite, label = stringResource(R.string.player_tool_favorite)) { onToggleFavorite() }\n                        }",
-    ),
-    (
-        "                PlayerControl.clusterFor(tv = true, cluster = ControlCluster.MEDIA).forEach { control ->",
-        "                if (onAudioMix != null) {\n                    CtrlButton(OwnTVIcon.AUDIO, active = audioMixEnabled, label = stringResource(R.string.player_tool_audio)) { onAudioMix() }\n                }\n                PlayerControl.clusterFor(tv = true, cluster = ControlCluster.MEDIA).forEach { control ->",
+        "            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {\n                // H2 — the ORDER comes from core's canonical list, not from the order these lines",
+        "            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {\n                if (onAudioMix != null) {\n                    CtrlButton(OwnTVIcon.AUDIO, active = audioMixEnabled, label = stringResource(R.string.player_tool_audio)) { onAudioMix() }\n                }\n                // H2 — the ORDER comes from core's canonical list, not from the order these lines",
     ),
 ])
 
