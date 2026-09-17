@@ -26,7 +26,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Build Core from AudioMix source
-        shell: bash
         run: |
           set -euo pipefail
           DEST="$RUNNER_TEMP/owntv-core"
@@ -36,17 +35,28 @@ jobs:
       - name: Apply AudioMix app integration
         run: python3 tools/apply_audiomix_app_patch.py
       - name: Verify AudioMix app patch
-        shell: bash
         run: |
           set -euo pipefail
           grep -n "audioMixEnabled\|onAudioMix\|showAudioMixList" app/src/main/java/tv/own/owntv/player/PlayerHud.kt app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
           grep -n "audioDelayStepMs" app/src/main/java/tv/own/owntv/player/PlayerHudDialogs.kt
       - name: Compile and assemble AudioMix APK
+        id: build_apk
+        continue-on-error: true
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:assembleStandardDebug --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew :app:assembleStandardDebug --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/audiomix-build.log"
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioMix-build-log
+          path: ${{ runner.temp }}/audiomix-build.log
+          if-no-files-found: error
+      - name: Fail if build failed
+        if: steps.build_apk.outcome == 'failure'
+        run: exit 1
       - name: Locate APK
-        shell: bash
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/standard/debug -name '*.apk' -type f | head -n1)
