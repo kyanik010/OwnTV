@@ -34,6 +34,12 @@ jobs:
           grep -n "audioMixEnable\|audioMixDisable\|audioMixExternalAid" "$DEST/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt" "$DEST/player-core/src/main/java/tv/own/owntv/player/PlaybackEngine.kt"
       - name: Apply AudioMix app integration
         run: python3 tools/apply_audiomix_app_patch.py
+      - name: Classify Core technical literals
+        working-directory: ${{ runner.temp }}/owntv-core
+        run: |
+          set -euo pipefail
+          python tools/i18n/check_hardcoded_strings.py classify-safe --path player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt --text "" --category empty
+          python tools/i18n/check_hardcoded_strings.py classify-safe --path player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt --text "yes" --category technical
       - name: Verify AudioMix app patch
         run: |
           set -euo pipefail
