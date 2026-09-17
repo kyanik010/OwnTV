@@ -52,7 +52,7 @@ patch("app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt", [
     ),
     (
         "                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
-        "                        // AudioMix: one button toggles the feature; when OFF it opens the channel picker,\n                        // when ON it disables the external audio source.\n                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
+        "                        // AudioMix button is rendered just after the favourite control.\n                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
     ),
     (
         "                            CtrlButton(OwnTVIcon.FAVORITE, active = favorite, activeTint = OwnTVTheme.colors.favorite, label = stringResource(R.string.player_tool_favorite)) { onToggleFavorite() }\n                        }",
@@ -80,10 +80,6 @@ patch("app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt", [
     (
         "                if (showHistoryList && isLiveChannel && historyChannels.isNotEmpty()) {",
         "                if (showAudioMixList && isTunedLive && !liveOnExo) {\n                    tv.own.owntv.features.shell.components.ChannelListOverlay(\n                        channels = zapChannels.filter { it.id != previewChannel?.id },\n                        currentId = null,\n                        nowPlaying = emptyMap(),\n                        title = stringResource(R.string.player_tool_audio),\n                        providerNames = liveProviderNames,\n                        showNumbers = directTuneEnabled,\n                        alignEnd = true,\n                        onSelect = { channel ->\n                            showAudioMixList = false\n                            mpvEngine.audioMixEnable(channel.streamUrl, channel.httpHeaders)\n                        },\n                        onDismiss = { showAudioMixList = false },\n                        modifier = Modifier.fillMaxSize(),\n                    )\n                }\n                if (showHistoryList && isLiveChannel && historyChannels.isNotEmpty()) {",
-    ),
-    (
-        "                    onMultiview = onMultiview, onRecordThis = onRecordThis, recordingThis = recordingThis, onBack = onBack,",
-        "                    onMultiview = onMultiview, onRecordThis = onRecordThis, recordingThis = recordingThis,\n                    audioMixEnabled = audioMixEnabled, onAudioMix = if (isTunedLive && !liveOnExo) {\n                        { if (audioMixEnabled) mpvEngine.audioMixDisable() else showAudioMixList = true }\n                    } else null, onBack = onBack,",
     ),
 ])
 
