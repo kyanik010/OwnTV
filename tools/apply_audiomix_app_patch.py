@@ -52,11 +52,15 @@ patch("app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt", [
     ),
     (
         "                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
-        "                        // AudioMix button is rendered just after the favourite control.\n                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
+        "                        // AudioMix is rendered as a separate media action so the existing AUDIO\n                        // control keeps its normal track-dialog behaviour.\n                        PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {",
     ),
     (
-        "                            CtrlButton(OwnTVIcon.FAVORITE, active = favorite, activeTint = OwnTVTheme.colors.favorite, label = stringResource(R.string.player_tool_favorite)) { onToggleFavorite() }\n                        }",
         "                            CtrlButton(OwnTVIcon.FAVORITE, active = favorite, activeTint = OwnTVTheme.colors.favorite, label = stringResource(R.string.player_tool_favorite)) { onToggleFavorite() }\n                        }\n                        if (onAudioMix != null) {\n                            CtrlButton(OwnTVIcon.AUDIO, active = audioMixEnabled, label = stringResource(R.string.player_tool_audio)) { onAudioMix() }\n                        }",
+        "                            CtrlButton(OwnTVIcon.FAVORITE, active = favorite, activeTint = OwnTVTheme.colors.favorite, label = stringResource(R.string.player_tool_favorite)) { onToggleFavorite() }\n                        }",
+    ),
+    (
+        "                PlayerControl.clusterFor(tv = true, cluster = ControlCluster.MEDIA).forEach { control ->",
+        "                if (onAudioMix != null) {\n                    CtrlButton(OwnTVIcon.AUDIO, active = audioMixEnabled, label = stringResource(R.string.player_tool_audio)) { onAudioMix() }\n                }\n                PlayerControl.clusterFor(tv = true, cluster = ControlCluster.MEDIA).forEach { control ->",
     ),
 ])
 
