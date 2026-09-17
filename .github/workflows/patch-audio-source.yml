@@ -1,0 +1,92 @@
+name: Patch audio source feature
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply feature
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              s = p.read_text()
+              assert old in s, f'{path}: pattern not found: {old[:120]!r}'
+              s2 = s.replace(old, new, count)
+              p.write_text(s2)
+
+          # Reflection bridge keeps this app change independent of libmpv's transitive Gradle visibility.
+          Path('app/src/main/java/tv/own/owntv/player/ExternalAudioController.kt').write_text('''package tv.own.owntv.player\n\nimport java.lang.reflect.Modifier\n\n/** Runtime bridge to the same libmpv instance used by OwnTVPlayer.\n * Adds a second live IPTV stream as an external audio track without replacing the video stream. */\nobject ExternalAudioController {\n    private const val MPV_CLASS = "dev.jdtech.mpv.MPVLib"\n    private var originalAid: Int? = null\n    private var active = false\n\n    private fun invoke(name: String, vararg args: Any?): Any? {\n        val clazz = Class.forName(MPV_CLASS)\n        val method = clazz.methods.firstOrNull {\n            it.name == name && it.parameterTypes.size == args.size\n        } ?: error("MPVLib.$name not found")\n        val receiver = if (Modifier.isStatic(method.modifiers)) null else clazz.getField("INSTANCE").get(null)\n        return method.invoke(receiver, *args)\n    }\n\n    private fun propertyInt(name: String): Int? = runCatching {\n        val raw = invoke("getPropertyString", name) as? String\n        raw?.toIntOrNull()\n    }.getOrNull()\n\n    /** Switches only the audio track; the current video URL stays untouched. */\n    fun setSource(url: String, title: String) {\n        if (url.isBlank()) return\n        runCatching {\n            if (active) runCatching { invoke("command", arrayOf("audio-remove")) }\n            originalAid = propertyInt("aid")\n            invoke("command", arrayOf("audio-add", url, "select", title, ""))\n            active = true\n        }\n    }\n\n    /** Removes the external commentary and restores the audio track that was selected before it. */\n    fun clear() {\n        runCatching {\n            if (active) invoke("command", arrayOf("audio-remove"))\n            val aid = originalAid\n            if (aid != null && aid > 0) {\n                invoke("setPropertyInt", "aid", aid)\n            } else {\n                invoke("setPropertyString", "aid", "auto")\n            }\n        }\n        active = false\n        originalAid = null\n    }\n}\n''')
+
+          # PlayerHudDialogs: add two actions to the existing Audio Track dialog.
+          replace(
+              'app/src/main/java/tv/own/owntv/player/PlayerHudDialogs.kt',
+              '    onSelect: (TrackOption) -> Unit,\n    onOff: (() -> Unit)?,\n    onDismiss: () -> Unit,',
+              '    onSelect: (TrackOption) -> Unit,\n    onOff: (() -> Unit)?,\n    onDismiss: () -> Unit,\n    onAudioSource: (() -> Unit)? = null,\n    onClearAudioSource: (() -> Unit)? = null,'
+          )
+          replace(
+              '        items(tracks.size) { index ->\n            val track = tracks[index]',
+              '''        items(tracks.size) { index ->\n            val track = tracks[index]'''
+          )
+          anchor = '''        // ADD SUBTITLES (subtitles dialog, movie/episode only) — OpenSubtitles search + local file (§4/§7).\n        if (onSearchSubtitles != null || onSelectLocalSubtitle != null) {'''
+          insert = '''        if (onAudioSource != null || onClearAudioSource != null) {\n            item {\n                Text(\n                    stringResource(R.string.player_audio_source),\n                    style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant,\n                    fontWeight = FontWeight.SemiBold,\n                    modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp),\n                )\n            }\n            if (onAudioSource != null) {\n                item { OptionRow(label = stringResource(R.string.player_audio_source), selected = false, onClick = onAudioSource) }\n            }\n            if (onClearAudioSource != null) {\n                item { OptionRow(label = stringResource(R.string.player_audio_original), selected = false, onClick = onClearAudioSource) }\n            }\n        }\n\n''' + anchor
+          replace('app/src/main/java/tv/own/owntv/player/PlayerHudDialogs.kt', anchor, insert)
+
+          # PlayerHud: expose the two actions to the dialog.
+          replace(
+              '    onSelectLocalSubtitle: (() -> Unit)? = null,\n    // Favorite toggle for the CURRENT item',
+              '    onSelectLocalSubtitle: (() -> Unit)? = null,\n    // Live only: choose another channel from the same IPTV source as an external audio/commentary stream.\n    onOpenAudioSource: (() -> Unit)? = null,\n    onClearAudioSource: (() -> Unit)? = null,\n    // Favorite toggle for the CURRENT item'
+          )
+          replace(
+              '                onDismiss = { dialog = HudDialog.NONE },\n                // A/V-sync nudge wherever the engine can actually shift audio:',
+              '                onDismiss = { dialog = HudDialog.NONE },\n                onAudioSource = onOpenAudioSource?.let { open -> { dialog = HudDialog.NONE; open() } },\n                onClearAudioSource = onClearAudioSource?.let { clear -> { clear() } },\n                // A/V-sync nudge wherever the engine can actually shift audio:'
+          )
+
+          # OwnTVShell: state, callback wiring, and the picker overlay.
+          replace(
+              '    var showHistoryList by remember { mutableStateOf(false) }\n    // Multiview:',
+              '    var showHistoryList by remember { mutableStateOf(false) }\n    // External audio/commentary source picker. It reuses the Live category/channel browser without changing video.\n    var showAudioSource by remember { mutableStateOf(false) }\n    // Multiview:'
+          )
+          replace(
+              'import tv.own.owntv.player.AudioNowPlayingBar\n',
+              'import tv.own.owntv.player.AudioNowPlayingBar\nimport tv.own.owntv.player.ExternalAudioController\n'
+          )
+          replace(
+              'inert = showChannelList || showHistoryList || showCategoryBrowser || showSubtitleSearch || showLocalSubPicker,',
+              'inert = showChannelList || showHistoryList || showAudioSource || showCategoryBrowser || showSubtitleSearch || showLocalSubPicker,'
+          )
+          replace(
+              '                    onToggleVodEngine = if (!isLiveStream && !isTunedLive) player::toggleVodEngine else null,\n                    // ADD SUBTITLES entry:',
+              '''                    onToggleVodEngine = if (!isLiveStream && !isTunedLive) player::toggleVodEngine else null,\n                    // Live: external commentary/audio source. The audio bridge uses mpv; promote an Exo live stream to mpv first.\n                    onOpenAudioSource = if (isTunedLive) {\n                        {\n                            if (liveOnExo) {\n                                scope.launch {\n                                    liveVm.toggleForceMpv()\n                                    kotlinx.coroutines.delay(1200)\n                                    showAudioSource = true\n                                }\n                            } else {\n                                showAudioSource = true\n                            }\n                        }\n                    } else null,\n                    onClearAudioSource = if (isTunedLive) { { ExternalAudioController.clear() } } else null,\n                    // ADD SUBTITLES entry:'''
+          )
+          overlay_anchor = '''                // Left — the playing channel's own provider category.\n                if (showChannelList && isLiveChannel) {'''
+          overlay = '''                // External audio source picker: choose a channel from the current IPTV source.\n                // The selected channel is added to mpv as AUDIO only; the video channel remains unchanged.\n                if (showAudioSource && isLiveChannel) {\n                    if (showCategoryBrowser) {\n                        tv.own.owntv.features.shell.components.CategoryBrowserOverlay(\n                            categories = browserCategories,\n                            currentCategoryId = previewChannel?.categoryId,\n                            onSelect = { catId -> liveVm.loadChannelsForCategory(catId) },\n                            onDismiss = { liveVm.hideCategoryBrowser() },\n                            modifier = Modifier.fillMaxSize(),\n                        )\n                    } else {\n                        val sameSourceChannels = zapChannels.filter { it.sourceId == previewChannel?.sourceId }\n                        tv.own.owntv.features.shell.components.ChannelListOverlay(\n                            channels = sameSourceChannels,\n                            currentId = previewChannel?.id,\n                            nowPlaying = overlayNowPlaying,\n                            title = stringResource(R.string.player_audio_source),\n                            showNumbers = directTuneEnabled,\n                            providerNames = liveProviderNames,\n                            alignEnd = true,\n                            onOpenCategories = { liveVm.showCategories() },\n                            onSelect = { channel ->\n                                ExternalAudioController.setSource(channel.streamUrl, channel.name)\n                                showAudioSource = false\n                                liveVm.hideCategoryBrowser()\n                            },\n                            onDismiss = { showAudioSource = false; liveVm.hideCategoryBrowser() },\n                            modifier = Modifier.fillMaxSize(),\n                        )\n                    }\n                }\n\n''' + overlay_anchor
+          replace('app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt', overlay_anchor, overlay)
+
+          # Add the resource strings in the app-independent core resource namespace already consumed by the app.\n          Path('app/src/main/res/values').mkdir(parents=True, exist_ok=True)
+          Path('app/src/main/res/values/strings_audio_source.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <string name="player_audio_source">Audio Source</string>\n    <string name="player_audio_original">Original Audio</string>\n</resources>\n''')
+          Path('app/src/main/res/values-ar').mkdir(parents=True, exist_ok=True)
+          Path('app/src/main/res/values-ar/strings_audio_source.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <string name="player_audio_source">مصدر الصوت</string>\n    <string name="player_audio_original">الصوت الأصلي</string>\n</resources>\n''')
+          PY
+
+      - name: Remove one-shot workflow and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/tv/own/owntv/player/ExternalAudioController.kt app/src/main/java/tv/own/owntv/player/PlayerHudDialogs.kt app/src/main/java/tv/own/owntv/player/PlayerHud.kt app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt app/src/main/res/values/strings_audio_source.xml app/src/main/res/values-ar/strings_audio_source.xml
+          git commit -m 'Add external IPTV audio source picker'\n          git rm .github/workflows/patch-audio-source.yml\n          git commit -m 'Remove one-shot audio source patch workflow'\n          git push
