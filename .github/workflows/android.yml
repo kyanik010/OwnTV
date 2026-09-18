@@ -1,5 +1,6 @@
 name: Android CI
 
+# Three jobs. Audio-source mode is built from the app plus the pinned OwnTV_Core player engine.
 # Three jobs:
 #   verify-pin — core pin bumps ONLY. Seconds, no build. See its own note.
 #   check      — unit tests + lint. Gates the build. Skipped on core pin bumps.
