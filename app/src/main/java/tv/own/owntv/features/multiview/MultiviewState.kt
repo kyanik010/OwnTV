@@ -95,12 +95,23 @@ class MultiviewState(
 
     fun setSoundOnly(tile: Int, value: Boolean) {
         if (tiles.getOrNull(tile)?.channel == null) return
-        pool.setSoundOnly(tile, value)
+
         if (value) {
+            // There is exactly one audio source. Restore the picture on any previous audio-only tile.
+            soundOnly.toList().filter { it != tile }.forEach { other ->
+                pool.peek(other)?.exitAudioOnly()
+                soundOnly.remove(other)
+            }
+
+            pool.setSoundOnly(tile, true)
             if (tile !in soundOnly) soundOnly.add(tile)
             audible = tile
         } else {
+            pool.setSoundOnly(tile, false)
             soundOnly.remove(tile)
+            if (audible == tile) {
+                pool.giveSoundTo(tile)
+            }
         }
     }
 
