@@ -2,6 +2,7 @@ package tv.own.owntv.features.multiview
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.util.UnstableApi
@@ -51,6 +52,12 @@ class MultiviewState(
     /** Tile indexes currently used as audio-only sources. Normally this contains at most one item. */
     val soundOnly = mutableStateListOf<Int>()
 
+    var videoSourceTile by mutableStateOf<Int?>(null)
+        private set
+
+    var audioSourceTile by mutableStateOf<Int?>(null)
+        private set
+
     /**
      * Explicitly separate Video Source and Audio Source.
      *
@@ -74,9 +81,12 @@ class MultiviewState(
             }
 
             if (videoTile != null) {
+                videoSourceTile = videoTile
+                audioSourceTile = tile
                 pool.setAudioSource(audioTile = tile, videoTile = videoTile)
             } else {
-                // A single tile cannot have two independent roles. Keep the normal player behavior.
+                videoSourceTile = null
+                audioSourceTile = tile
                 pool.setSoundOnly(tile, true)
             }
 
@@ -85,6 +95,8 @@ class MultiviewState(
         } else {
             pool.setSoundOnly(tile, false)
             soundOnly.remove(tile)
+            if (audioSourceTile == tile) audioSourceTile = null
+            if (videoSourceTile == tile) videoSourceTile = null
             if (audible == tile) {
                 giveSoundTo(tile)
             }
@@ -115,6 +127,8 @@ class MultiviewState(
             pool.peek(audioTile)?.exitAudioOnly()
         }
         soundOnly.clear()
+        videoSourceTile = null
+        audioSourceTile = null
 
         audible = tile
         pool.giveSoundTo(tile)
@@ -153,8 +167,12 @@ class MultiviewState(
     fun clear(tile: Int) {
         if (tile !in tiles.indices) return
         releaseClaim(tile)
+        val removedAudioSource = audioSourceTile == tile
+        val removedVideoSource = videoSourceTile == tile
         pool.release(tile)
         soundOnly.remove(tile)
+        if (removedAudioSource) audioSourceTile = null
+        if (removedVideoSource) videoSourceTile = null
         tiles[tile] = MultiviewTile()
         while (tiles.size > openingTileCount(maxTiles) && tiles.last().isEmpty) {
             pool.release(tiles.lastIndex)
@@ -162,6 +180,19 @@ class MultiviewState(
         }
         if (focused > tiles.lastIndex) focused = tiles.lastIndex
         if (audible == tile) audible = tiles.indexOfFirst { it.channel != null }.coerceAtLeast(0)
+        if (removedVideoSource && audioSourceTile != null) {
+            val replacement = tiles.indices.firstOrNull { it != audioSourceTile && tiles[it].channel != null }
+            if (replacement != null) {
+                videoSourceTile = replacement
+                pool.setAudioSource(audioSourceTile!!, replacement)
+            } else {
+                pool.peek(audioSourceTile!!)?.exitAudioOnly()
+                pool.giveSoundTo(audioSourceTile)
+                soundOnly.clear()
+                audioSourceTile = null
+                videoSourceTile = null
+            }
+        }
     }
 
     fun releaseAll() {
