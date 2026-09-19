@@ -133,12 +133,27 @@ jobs:
       - name: Unit tests
         run: |
           chmod +x ./gradlew
-          ./gradlew testStandardDebugUnitTest --stacktrace
+          set +e
+          ./gradlew testStandardDebugUnitTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
+          RC=${PIPESTATUS[0]}
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::Unit tests failed (exit $RC). Full Gradle output:"
+            cat "$RUNNER_TEMP/unit-tests.log"
+            exit "$RC"
+          fi
 
       # abortOnError = true in app/build.gradle.kts, so this fails the job on a lint error.
       - name: Lint
         if: always()   # report both verdicts in one run instead of one failure at a time
-        run: ./gradlew lintStandardDebug --stacktrace
+        run: |
+          set +e
+          ./gradlew lintStandardDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/lint.log"
+          RC=${PIPESTATUS[0]}
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::Lint failed (exit $RC). Full Gradle output:"
+            cat "$RUNNER_TEMP/lint.log"
+            exit "$RC"
+          fi
 
       - name: Upload test and lint reports
         if: always()   # the reports matter most when the step above failed
@@ -184,7 +199,7 @@ jobs:
       - name: Resolve core
         uses: ./.github/actions/resolve-core
         with:
-          force-source-build: ${{ inputs.true }}
+          force-source-build: true
 
       - name: Compute version (from the git tag on releases)
         id: ver
