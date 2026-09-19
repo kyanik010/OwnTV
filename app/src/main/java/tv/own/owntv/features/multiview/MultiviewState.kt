@@ -58,6 +58,56 @@ class MultiviewState(
     var audioSourceTile by mutableStateOf<Int?>(null)
         private set
 
+    /** Make [tile] the full-resolution video source and keep a different audio source. */
+    fun setVideoSource(tile: Int) {
+        if (tiles.getOrNull(tile)?.channel == null) return
+        val audioTile = audioSourceTile?.takeIf { it != tile && tiles.getOrNull(it)?.channel != null }
+            ?: tiles.indices.firstOrNull { it != tile && tiles[it].channel != null }
+        if (audioTile == null) {
+            giveSoundTo(tile)
+            return
+        }
+        videoSourceTile = tile
+        audioSourceTile = audioTile
+        soundOnly.clear()
+        soundOnly.add(audioTile)
+        audible = audioTile
+        pool.setAudioSource(audioTile = audioTile, videoTile = tile)
+    }
+
+    /** Make [tile] the audio source for the current video source. */
+    fun setAudioSource(tile: Int) {
+        if (tiles.getOrNull(tile)?.channel == null) return
+        val videoTile = videoSourceTile?.takeIf { it != tile && tiles.getOrNull(it)?.channel != null }
+            ?: tiles.indices.firstOrNull { it != tile && tiles[it].channel != null }
+        if (videoTile == null) {
+            setSoundOnly(tile, true)
+            return
+        }
+        videoSourceTile = videoTile
+        audioSourceTile = tile
+        soundOnly.clear()
+        soundOnly.add(tile)
+        audible = tile
+        pool.setAudioSource(audioTile = tile, videoTile = videoTile)
+    }
+
+    /** Leave split source mode and return audio to the video source. */
+    fun removeAudioSource() {
+        val videoTile = videoSourceTile?.takeIf { tiles.getOrNull(it)?.channel != null }
+        val audioTile = audioSourceTile?.takeIf { tiles.getOrNull(it)?.channel != null }
+        audioTile?.let { pool.peek(it)?.exitAudioOnly() }
+        soundOnly.clear()
+        audioSourceTile = null
+        if (videoTile != null) {
+            videoSourceTile = null
+            giveSoundTo(videoTile)
+        } else {
+            videoSourceTile = null
+            audioTile?.let { giveSoundTo(it) }
+        }
+    }
+
     /**
      * Explicitly separate Video Source and Audio Source.
      *
@@ -93,13 +143,14 @@ class MultiviewState(
             if (tile !in soundOnly) soundOnly.add(tile)
             audible = tile
         } else {
+            if (audioSourceTile == tile) {
+                removeAudioSource()
+                return
+            }
             pool.setSoundOnly(tile, false)
             soundOnly.remove(tile)
-            if (audioSourceTile == tile) audioSourceTile = null
             if (videoSourceTile == tile) videoSourceTile = null
-            if (audible == tile) {
-                giveSoundTo(tile)
-            }
+            if (audible == tile) giveSoundTo(tile)
         }
     }
 
@@ -147,9 +198,17 @@ class MultiviewState(
         }
         claims[tile] = registry.claim(channel.sourceId, StreamPurpose.WATCHING)
         tiles[tile] = MultiviewTile(channel = channel)
-        val takesSound = tiles.none { it.channel != null && it != tiles[tile] }
-        live.tuneTile(pool.engineFor(tile), channel, muted = !takesSound && audible != tile)
-        if (takesSound) giveSoundTo(tile) else if (audible == tile) pool.giveSoundTo(tile)
+        val splitMode = videoSourceTile != null && audioSourceTile != null
+        live.tuneTile(pool.engineFor(tile), channel, muted = splitMode || audible != tile)
+        if (splitMode) {
+            pool.peek(tile)?.setMuted(true)
+            pool.peek(tile)?.setMaxVideoHeight(tv.own.owntv.player.LiveEnginePool.BACKGROUND_TILE_HEIGHT)
+            pool.setAudioSource(audioSourceTile!!, videoSourceTile!!)
+        } else if (tiles.count { it.channel != null } == 1) {
+            giveSoundTo(tile)
+        } else if (audible == tile) {
+            pool.giveSoundTo(tile)
+        }
     }
 
     fun refuseDeviceLimit(tile: Int) {
