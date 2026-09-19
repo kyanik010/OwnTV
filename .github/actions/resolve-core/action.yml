@@ -68,8 +68,13 @@ runs:
           CORE_REF="core-$VERSION"
           echo "Cloning ahXN00/OwnTV_Core at $CORE_REF"
         fi
-        git clone --depth 1 --branch "$CORE_REF" \
-          https://github.com/ahXN00/OwnTV_Core.git "$DEST"
+        if [ "$FORCE" = "true" ]; then
+          git clone --filter=blob:none https://github.com/ahXN00/OwnTV_Core.git "$DEST"
+          git -C "$DEST" checkout --detach "$CORE_REF"
+        else
+          git clone --depth 1 --branch "$CORE_REF" \
+            https://github.com/ahXN00/OwnTV_Core.git "$DEST"
+        fi
 
         # The home gradle.properties, never the repo's: owntv.corePath is a machine-local setting and
         # writing it into a checked-in file would follow the branch into a merge.
