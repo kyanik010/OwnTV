@@ -47,7 +47,7 @@ jobs:
           DEST="$RUNNER_TEMP/owntv-core"
           git init "$DEST"
           git -C "$DEST" remote add origin https://github.com/kyanik010/OwnTV_Core.git
-          git -C "$DEST" fetch --depth 1 origin 0f7fce917c3f7b2dcc93e398a78b609440579955
+          git -C "$DEST" fetch --depth 1 origin 0fc94afaec68e9a8596a2dfe4cd6e821fe1bf671
           git -C "$DEST" checkout --detach FETCH_HEAD
           python3 "$DEST/tools/i18n/check_hardcoded_strings.py" prune-safe
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
