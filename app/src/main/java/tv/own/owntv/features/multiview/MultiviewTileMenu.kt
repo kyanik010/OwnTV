@@ -77,10 +77,22 @@ fun MultiviewTileMenu(
             if (filled) {
                 MenuRow(stringResource(R.string.multiview_tile_fullscreen), OwnTVIcon.EXPAND, onFullscreen)
                 MenuRow(stringResource(R.string.multiview_audio_tile), OwnTVIcon.VOLUME_HIGH, onSound)
-                MenuRow("Video Source", OwnTVIcon.EXPAND, onVideoSource)
-                MenuRow("Audio Source", OwnTVIcon.HEADPHONES, onAudioSource)
+                MenuRow(
+                    label = stringResource(R.string.player_stream_video) + " " + stringResource(R.string.player_stream_source),
+                    icon = OwnTVIcon.EXPAND,
+                    onClick = onVideoSource,
+                )
+                MenuRow(
+                    label = stringResource(R.string.player_stream_audio) + " " + stringResource(R.string.player_stream_source),
+                    icon = OwnTVIcon.HEADPHONES,
+                    onClick = onAudioSource,
+                )
                 if (onRemoveAudioSource != null) {
-                    MenuRow("Remove Audio Source", OwnTVIcon.CLOSE, onRemoveAudioSource)
+                    MenuRow(
+                        label = stringResource(R.string.player_tool_audio) + " " + stringResource(R.string.content_remove),
+                        icon = OwnTVIcon.CLOSE,
+                        onClick = onRemoveAudioSource,
+                    )
                 }
                 // Give up this tile's picture and keep only its sound — or take the picture back.
                 MenuRow(
