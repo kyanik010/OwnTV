@@ -1358,7 +1358,7 @@ fun OwnTVShell(
                     onAudioMode = toAudioMode,
                     // The channel-list overlay draws ABOVE the HUD; while it's open the HUD goes inert so
                     // its hide/error focus grabs can't yank D-pad focus off the overlay.
-                    inert = showChannelList || showHistoryList || showCategoryBrowser || showSubtitleSearch || showLocalSubPicker,
+                    inert = showChannelList || showHistoryList || showAudioMixList || showCategoryBrowser || showSubtitleSearch || showLocalSubPicker,
                     onChannelUp = zap?.let { z -> { z(-1) } },
                     onChannelDown = zap?.let { z -> { z(1) } },
                     onOpenChannelList = if (isTunedLive && liveCanZap) { { showChannelList = true } } else null,
