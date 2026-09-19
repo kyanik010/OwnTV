@@ -48,7 +48,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           set -o pipefail
-          ./gradlew :app:assembleStandardDebug --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/audiomix-build.log"
+          ./gradlew :app:assembleStandardDebug --no-daemon --stacktrace --no-build-cache --no-configuration-cache 2>&1 | tee "$RUNNER_TEMP/audiomix-build.log"
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
