@@ -29,7 +29,10 @@ jobs:
         run: |
           set -euo pipefail
           DEST="$RUNNER_TEMP/owntv-core"
-          git clone --depth 1 https://github.com/kyanik010/OwnTV_Core.git "$DEST"
+          git init "$DEST"
+          git -C "$DEST" remote add origin https://github.com/kyanik010/OwnTV_Core.git
+          git -C "$DEST" fetch --depth 1 origin 1f931af43f207646085967c9b96e2e3f95db0d71
+          git -C "$DEST" checkout --detach FETCH_HEAD
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
           grep -n "audioMixEnable\|audioMixDisable\|audioMixExternalAid" "$DEST/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt" "$DEST/player-core/src/main/java/tv/own/owntv/player/PlaybackEngine.kt"
       - name: Apply AudioMix app integration
