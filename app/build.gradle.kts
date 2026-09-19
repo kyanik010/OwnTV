@@ -403,7 +403,6 @@ dependencies {
     // Networking
     implementation(libs.okhttp)
     implementation(libs.zxing.core) // QR generation for the Remote (companion) add-source flow
-    implementation(libs.juniversalchardet) // local subtitle charset detection (subtitle plan §7.2)
 
     // Media playback — libmpv (FFmpeg) engine
     implementation(libs.libmpv)
@@ -414,17 +413,13 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls) // HLS (.m3u8) support for the Live preview engine
     // DASH (.mpd) — the container protected channels use (#115). DefaultMediaSourceFactory only
     // builds a DASH source when this is on the classpath; without it a .mpd fails as "unsupported".
-    implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.datasource.okhttp)
 
     // In-app YouTube trailer playback (plan §7.3) — WebView-backed IFrame player; the only ToS-clean
     // way to play YouTube trailers inside the app. Falls back to an "Open in YouTube" intent.
-    implementation(libs.youtube.player)
 
     // Image loading
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
 
     // Dependency injection
     implementation(platform(libs.koin.bom))
