@@ -22,16 +22,32 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools'
+          packages: 'platform-tools ndk;25.2.9519653 cmake;3.22.1'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Download GStreamer Android SDK
+        run: |
+          set -euo pipefail
+          GST_VER="1.26.11"
+          GST_DIR="$RUNNER_TEMP/gstreamer-1.0-android-universal-$GST_VER"
+          ARCHIVE="$RUNNER_TEMP/gstreamer-android.tar.xz"
+          if [ ! -d "$GST_DIR" ]; then
+            curl -fL --retry 3 --retry-delay 5 \\
+              -o "$ARCHIVE" \\
+              "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
+            tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP"
+          fi
+          test -f "$GST_DIR/share/cmake/FindGStreamerMobile.cmake"
+          echo "GSTREAMER_ROOT_ANDROID=$GST_DIR" >> "$GITHUB_ENV"
+          echo "gstreamerRoot=$GST_DIR" >> "$HOME/.gradle/gradle.properties"
+          echo "GStreamer SDK: $GST_DIR"
       - name: Build Core from AudioMix source
         run: |
           set -euo pipefail
           DEST="$RUNNER_TEMP/owntv-core"
           git init "$DEST"
           git -C "$DEST" remote add origin https://github.com/kyanik010/OwnTV_Core.git
-          git -C "$DEST" fetch --depth 1 origin 342e464640afb3534b47953ea84090cc71e68dcc
+          git -C "$DEST" fetch --depth 1 origin 28d7bb6f51cd0f26ed8c9896fb5986110b034bd9
           git -C "$DEST" checkout --detach FETCH_HEAD
           python3 "$DEST/tools/i18n/check_hardcoded_strings.py" prune-safe
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
@@ -71,4 +87,4 @@ jobs:
           path: ${{ env.APK }}
           if-no-files-found: error
 
-# AudioMix build: reuse OwnTV MPV/libmpv external-audio infrastructure.
+# AudioMix build: OwnTV normal playback remains MPV; AudioMix uses the experimental one-pipeline GStreamer backend.
