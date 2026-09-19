@@ -134,7 +134,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           set +e
-          ./gradlew testStandardDebugUnitTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
+          ./gradlew testStandardDebugUnitTest --stacktrace --no-build-cache --no-configuration-cache --rerun-tasks 2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
           RC=${PIPESTATUS[0]}
           if [ "$RC" -ne 0 ]; then
             echo "::error::Unit tests failed (exit $RC). Full Gradle output:"
@@ -147,7 +147,7 @@ jobs:
         if: always()   # report both verdicts in one run instead of one failure at a time
         run: |
           set +e
-          ./gradlew lintStandardDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/lint.log"
+          ./gradlew lintStandardDebug --stacktrace --no-build-cache --no-configuration-cache --rerun-tasks 2>&1 | tee "$RUNNER_TEMP/lint.log"
           RC=${PIPESTATUS[0]}
           if [ "$RC" -ne 0 ]; then
             echo "::error::Lint failed (exit $RC). Full Gradle output:"
@@ -274,7 +274,7 @@ jobs:
           chmod +x ./gradlew
           if [ -n "$KEYSTORE_FILE" ]; then
             echo "Building signed release APKs (both ABI flavors)"
-            ./gradlew assembleRelease --stacktrace
+            ./gradlew assembleRelease --stacktrace --no-build-cache --no-configuration-cache
             # Product flavors split the output by flavor subfolder:
             #   standard/release  -> arm (arm64-v8a + armeabi-v7a) — the main download
             #   x86_64/release    -> x86_64 — emulator / rare x86 box
@@ -286,7 +286,7 @@ jobs:
             echo "X86_SRC=$X86_SRC" >> "$GITHUB_ENV"
           else
             echo "Building debug APK"
-            ./gradlew assembleDebug
+            ./gradlew assembleDebug --no-build-cache --no-configuration-cache
             # Debug also builds both flavors; standard (arm) is the one most likely to be tested on a
             # real device. Surface it as the primary artifact; x86_64 debug is still in its folder.
             SRC=$(ls app/build/outputs/apk/standard/debug/*.apk | head -n1)
