@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -167,6 +168,12 @@ private fun Tile(
             .focusRequester(focusRequester)
             .onFocusChanged { if (it.isFocused) state.focus(index) }
             .focusable()
+            .combinedClickable(
+                onClick = {
+                    if (tile.channel == null) onPickChannel() else state.giveSoundTo(index)
+                },
+                onLongClick = onMenu,
+            )
             .onKeyEvent { event ->
                 when {
                     event.key == Key.Menu && event.type == KeyEventType.KeyDown -> { onMenu(); true }
