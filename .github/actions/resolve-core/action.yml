@@ -61,8 +61,14 @@ runs:
         # the tag matches coreVersion in build.gradle.kts — so this tag always exists for a pin that
         # was produced by the bump workflow.
         DEST="$RUNNER_TEMP/owntv-core"
-        echo "Cloning ahXN00/OwnTV_Core at core-$VERSION"
-        git clone --depth 1 --branch "core-$VERSION" \
+        if [ "$FORCE" = "true" ]; then
+          CORE_REF="b683ef7a382780ef17d0321de8efacedc33a6af1"
+          echo "Cloning OwnTV_Core test commit $CORE_REF for audio-source validation"
+        else
+          CORE_REF="core-$VERSION"
+          echo "Cloning ahXN00/OwnTV_Core at $CORE_REF"
+        fi
+        git clone --depth 1 --branch "$CORE_REF" \
           https://github.com/ahXN00/OwnTV_Core.git "$DEST"
 
         # The home gradle.properties, never the repo's: owntv.corePath is a machine-local setting and
