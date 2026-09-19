@@ -32,8 +32,8 @@ jobs:
           GST_DIR="$RUNNER_TEMP/gstreamer-1.0-android-universal-$GST_VER"
           ARCHIVE="$RUNNER_TEMP/gstreamer-android.tar.xz"
           if [ ! -d "$GST_DIR" ]; then
-            curl -fL --retry 3 --retry-delay 5 \\
-              -o "$ARCHIVE" \\
+            curl -fL --retry 3 --retry-delay 5 \
+              -o "$ARCHIVE" \
               "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
             tar -xJf "$ARCHIVE" -C "$RUNNER_TEMP"
           fi
