@@ -137,6 +137,9 @@ fun PlayerHud(
     // Live only, and only when Multiview is switched on in Settings: turn this channel into tile 1 of
     // the grid. Null hides the button entirely — the feature is opt-in (D3's shape, applied to D5).
     onMultiview: (() -> Unit)? = null,
+    // Live TV: open the AudioMix channel picker, or clear the active external commentary track.
+    onAudioMix: (() -> Unit)? = null,
+    audioMixActive: Boolean = false,
     // Live only, and only once "Record what I'm watching" is switched on in Settings (D3): record the
     // channel already playing, over the connection already open. Null hides the button entirely —
     // the feature does not exist until the user has accepted the one-connection trade-off.
@@ -659,7 +662,7 @@ fun PlayerHud(
                     },
                     favorite = favorite, onToggleFavorite = onToggleFavorite,
                     onOpenDialog = { dialog = it }, onPip = onPip, onAudioMode = onAudioMode,
-                    onMultiview = onMultiview, onRecordThis = onRecordThis, recordingThis = recordingThis, onBack = onBack,
+                    onMultiview = onMultiview, onAudioMix = onAudioMix, audioMixActive = audioMixActive, onRecordThis = onRecordThis, recordingThis = recordingThis, onBack = onBack,
                     modifier = Modifier.align(Alignment.BottomStart),
                 )
             }
