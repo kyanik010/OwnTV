@@ -133,7 +133,7 @@ jobs:
       - name: Refresh core i18n inventory
         run: |
           set -euo pipefail
-          python3 "$owntvCorePath/tools/i18n/check_hardcoded_strings.py" prune-safe
+          python3 "$RUNNER_TEMP/owntv-core/tools/i18n/check_hardcoded_strings.py" prune-safe
 
       # One variant, not `test`/`lint` across every flavor: standard+debug is the variant the JVM
       # tests are written against, and the ABI flavors differ only in the packaged native libs.
