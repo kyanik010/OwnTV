@@ -388,7 +388,7 @@ internal fun BottomBar(
                         PlayerControl.AUDIO -> {
                             CtrlButton(OwnTVIcon.AUDIO, badge = audioCount.takeIf { it > 1 }, label = stringResource(R.string.player_tool_audio)) { onOpenDialog(HudDialog.AUDIO) }
                             if (onAudioMix != null) {
-                                CtrlButton(OwnTVIcon.HEADPHONES, active = audioMixActive, label = stringResource(R.string.player_tool_audio_mix)) { onAudioMix() }
+                                CtrlButton(OwnTVIcon.HEADPHONES, active = audioMixActive, label = stringResource(R.string.player_tool_audio)) { onAudioMix() }
                             }
                         }
                         // Favorite the current channel/movie/series without leaving the stream (coral
