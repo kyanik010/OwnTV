@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -539,8 +541,24 @@ fun PlayerHud(
     ) {
         if (!controlsVisible && !showNextCard) {
             Box(
-                Modifier.fillMaxSize().focusRequester(catchFocus).focusable()
-                    .onKeyEvent { e -> if (e.type == KeyEventType.KeyDown && e.key != Key.Back) { controlsVisible = true; true } else false },
+                Modifier.fillMaxSize()
+                    .focusRequester(catchFocus)
+                    .focusable()
+                    // Touch/click input must also reopen the HUD. Previously the hidden focus catcher
+                    // handled only D-pad/key events, so tapping the video after auto-hide did nothing.
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            controlsVisible = true
+                            wakeTick++
+                        }
+                    }
+                    .onKeyEvent { e ->
+                        if (e.type == KeyEventType.KeyDown && e.key != Key.Back) {
+                            controlsVisible = true
+                            wakeTick++
+                            true
+                        } else false
+                    },
             )
         }
 
