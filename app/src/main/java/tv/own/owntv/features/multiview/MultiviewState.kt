@@ -233,6 +233,16 @@ class MultiviewState(
         if (removedAudioSource) audioSourceTile = null
         if (removedVideoSource) videoSourceTile = null
         tiles[tile] = MultiviewTile()
+        if (removedAudioSource && !removedVideoSource) {
+            // Removing the commentary source must immediately restore the picture source's audio.
+            val video = videoSourceTile?.takeIf { tiles.getOrNull(it)?.channel != null }
+            videoSourceTile = null
+            soundOnly.clear()
+            if (video != null) {
+                audible = video
+                pool.giveSoundTo(video)
+            }
+        }
         while (tiles.size > openingTileCount(maxTiles) && tiles.last().isEmpty) {
             pool.release(tiles.lastIndex)
             tiles.removeAt(tiles.lastIndex)
