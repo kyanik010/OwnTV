@@ -2285,6 +2285,68 @@ class LiveViewModel(
     suspend fun nowPlayingFor(channels: List<ChannelEntity>): Map<Long, String> =
         epgReader.nowPlayingFor(channels, custom.value, epgOffset.value)
 
+
+    /** Channels available for the AudioMix picker, across all active Live sources. */
+    suspend fun audioMixChannels(limit: Int = 500): List<ChannelEntity> {
+        val c = ctx.value
+        if (c.profileId < 0 || c.sourceIds.isEmpty()) return emptyList()
+        val raw = withContext(Dispatchers.IO) {
+            channelDao.snapshotAll(c.sourceIds, limit)
+        }
+        val cust = custom.value
+        val hiddenCats = hiddenCategoryIds.value
+        return raw
+            .filter { isChannelVisible(it, cust, hiddenCats) }
+            .map { ch -> cust.itemNames[CustomizeKeys.channel(ch)]?.let { ch.copy(name = it) } ?: ch }
+    }
+
+    /**
+     * Attach another Live channel as an external MPV audio track.
+     * The current picture stays on the existing channel; the selected channel is never opened as
+     * another LiveEngine/preview connection.
+     */
+    fun setAudioMixSource(channel: ChannelEntity) {
+        val video = _previewChannel.value ?: return
+        if (channel.id == video.id) return
+        viewModelScope.launch {
+            val source = getSource(channel.sourceId) ?: return@launch
+            val url = if (streamUrlResolver.needsResolve(source)) {
+                withContext(Dispatchers.IO) {
+                    runCatching { streamUrlResolver.resolve(source, channel.streamUrl) }.getOrNull()
+                } ?: return@launch
+            } else {
+                tuneUrl(channel, source)
+            }
+
+            // AudioMix is implemented by MPV's audio-add in the SAME player session. If Live TV was
+            // promoted to ExoPlayer, hand the current picture back to MPV first.
+            if (_liveOnExo.value) {
+                exoOutcomeJob?.cancel()
+                _liveOnExo.value = false
+                previewEngine.stop()
+                startOnMpv(video, "audio mix")
+            }
+
+            // Wait for MPV to be initialized/playing before audio-add; otherwise a fast click during
+            // the engine handoff can be dropped by the MPV command queue.
+            withTimeoutOrNull(15_000L) {
+                player.isPlaying.first { it }
+            }
+            if (_previewChannel.value?.id != video.id) return@launch
+
+            player.audioMixEnable(
+                url = url,
+                headers = channel.httpHeaders,
+                userAgent = source.userAgent,
+            )
+        }
+    }
+
+    /** Remove the external commentary track and restore the picture channel's original audio. */
+    fun clearAudioMixSource() {
+        player.audioMixDisable()
+    }
+
     private suspend fun currentProfileId(): Long? {
         val preferred = settings.activeProfileId.first()
         return if (preferred >= 0) profileDao.resolveExistingProfileId(preferred) else null
