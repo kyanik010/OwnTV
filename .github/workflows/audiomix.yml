@@ -36,13 +36,11 @@ jobs:
           python3 "$DEST/tools/i18n/check_hardcoded_strings.py" prune-safe
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
           grep -n "audioMixEnable\|audioMixDisable\|audioMixExternalAid" "$DEST/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt" "$DEST/player-core/src/main/java/tv/own/owntv/player/PlaybackEngine.kt"
-      - name: Apply AudioMix app integration
-        run: python3 tools/apply_audiomix_app_patch.py
-      - name: Verify AudioMix app patch
+      - name: Verify AudioMix UI integration
         run: |
           set -euo pipefail
-          grep -n "audioMixEnabled\|onAudioMix\|showAudioMixList" app/src/main/java/tv/own/owntv/player/PlayerHud.kt app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
-          grep -n "audioDelayStepMs" app/src/main/java/tv/own/owntv/player/PlayerHudDialogs.kt
+          grep -n "onAudioMix\|audioMixActive" app/src/main/java/tv/own/owntv/player/PlayerHud.kt app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt
+          grep -n "showAudioMixList\|setAudioMixSource\|clearAudioMixSource" app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt app/src/main/java/tv/own/owntv/features/live/LiveViewModel.kt
       - name: Compile and assemble AudioMix APK
         id: build_apk
         continue-on-error: true
