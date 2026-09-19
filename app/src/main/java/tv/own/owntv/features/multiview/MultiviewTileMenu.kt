@@ -89,7 +89,7 @@ fun MultiviewTileMenu(
                 )
                 if (onRemoveAudioSource != null) {
                     MenuRow(
-                        label = stringResource(R.string.player_tool_audio) + " " + stringResource(R.string.content_remove),
+                        label = stringResource(R.string.multiview_tile_show_picture),
                         icon = OwnTVIcon.CLOSE,
                         onClick = onRemoveAudioSource,
                     )
