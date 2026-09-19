@@ -29,28 +29,41 @@ jobs:
         run: |
           set -euo pipefail
           GST_VER="1.26.11"
-          # RUNNER_TEMP is backed by the runner's small 14 GB temp disk. The
-          # 1.4 GB universal SDK expands substantially, so keep it on HOME/root
-          # storage instead to avoid extraction failures.
           GST_BASE="$HOME/.cache/owntv-gstreamer"
-          GST_DIR="$GST_BASE/gstreamer-1.0-android-universal-$GST_VER"
           ARCHIVE="$GST_BASE/gstreamer-android-$GST_VER.tar.xz"
+          GST_MODULE="$GST_BASE/FindGStreamerMobile.cmake"
           mkdir -p "$GST_BASE"
 
           echo "Disk before GStreamer:"
           df -h "$HOME" "$RUNNER_TEMP"
 
-          if [ ! -f "$GST_DIR/share/cmake/FindGStreamerMobile.cmake" ]; then
-            rm -rf "$GST_DIR"
-            curl -fL --retry 8 --retry-all-errors --retry-delay 10               --connect-timeout 60 --max-time 1800               -o "$ARCHIVE"               "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
+          if [ ! -f "$GST_MODULE" ]; then
+            rm -rf "$GST_BASE"/gstreamer-1.0-android-universal-* "$GST_BASE"/gstreamer-android-*.tar.xz
+            curl -fL --retry 8 --retry-all-errors --retry-delay 10 \
+              --connect-timeout 60 --max-time 1800 \
+              -o "$ARCHIVE" \
+              "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
+
+            echo "Downloaded GStreamer archive:"
+            ls -lh "$ARCHIVE"
             tar -xJf "$ARCHIVE" -C "$GST_BASE"
             rm -f "$ARCHIVE"
+
+            FOUND_MODULE=$(find "$GST_BASE" -type f -name FindGStreamerMobile.cmake -print -quit)
+            test -n "$FOUND_MODULE"
+            cp "$FOUND_MODULE" "$GST_MODULE"
           fi
 
-          test -f "$GST_DIR/share/cmake/FindGStreamerMobile.cmake"
+          FOUND_MODULE="$GST_MODULE"
+          test -f "$FOUND_MODULE"
+
+          GST_DIR=$(dirname "$(dirname "$(dirname "$FOUND_MODULE")")")
+          test -d "$GST_DIR/share"
+          echo "GStreamer SDK root: $GST_DIR"
+          echo "GStreamer CMake module: $FOUND_MODULE"
+
           echo "GSTREAMER_ROOT_ANDROID=$GST_DIR" >> "$GITHUB_ENV"
           echo "gstreamerRoot=$GST_DIR" >> "$HOME/.gradle/gradle.properties"
-          echo "GStreamer SDK: $GST_DIR"
           echo "Disk after GStreamer:"
           df -h "$HOME" "$RUNNER_TEMP"
       - name: Build Core from AudioMix source
