@@ -1494,7 +1494,7 @@ fun OwnTVShell(
                     tv.own.owntv.features.shell.components.ChannelListOverlay(
                         channels = audioMixChannels.filter { it.id != previewChannel?.id },
                         currentId = null,
-                        title = tv.own.owntv.R.string_placeholder_audio_mix_title(),
+                        title = stringResource(tv.own.owntv.R.string.multiview_audio_source),
                         showNumbers = directTuneEnabled,
                         providerNames = liveProviderNames,
                         onSelect = {
