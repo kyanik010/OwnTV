@@ -184,7 +184,7 @@ jobs:
       - name: Resolve core
         uses: ./.github/actions/resolve-core
         with:
-          force-source-build: ${{ inputs.force_core_source || false }}
+          force-source-build: ${{ inputs.true }}
 
       - name: Compute version (from the git tag on releases)
         id: ver
