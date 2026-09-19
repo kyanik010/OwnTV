@@ -313,7 +313,7 @@ internal fun BottomBar(
     onInfo: (() -> Unit)? = null, infoOn: Boolean = false, onReport: (() -> Unit)? = null,
     favorite: Boolean = false, onToggleFavorite: (() -> Unit)? = null,
     onOpenDialog: (HudDialog) -> Unit, onPip: (() -> Unit)?, onAudioMode: (() -> Unit)?,
-    onMultiview: (() -> Unit)? = null, onRecordThis: (() -> Unit)? = null, recordingThis: Boolean = false,
+    onMultiview: (() -> Unit)? = null, onAudioMix: (() -> Unit)? = null, audioMixActive: Boolean = false, onRecordThis: (() -> Unit)? = null, recordingThis: Boolean = false,
     onBack: () -> Unit, modifier: Modifier = Modifier,
 ) {
     val seekStep by player.seekStepMs.collectAsStateWithLifecycle() // Settings -> Seek step
@@ -385,8 +385,12 @@ internal fun BottomBar(
                             SpeedButton(label = speedLabel, active = speedLabel != stringResource(R.string.player_speed_normal_short), toolLabel = stringResource(R.string.player_tool_speed)) { onOpenDialog(HudDialog.SPEED) }
                         PlayerControl.SUBTITLES ->
                             CtrlButton(OwnTVIcon.SUBTITLE, badge = subCount.takeIf { it > 0 }, label = stringResource(R.string.player_tool_subtitles)) { onOpenDialog(HudDialog.SUBS) }
-                        PlayerControl.AUDIO ->
+                        PlayerControl.AUDIO -> {
                             CtrlButton(OwnTVIcon.AUDIO, badge = audioCount.takeIf { it > 1 }, label = stringResource(R.string.player_tool_audio)) { onOpenDialog(HudDialog.AUDIO) }
+                            if (onAudioMix != null) {
+                                CtrlButton(OwnTVIcon.HEADPHONES, active = audioMixActive, label = stringResource(R.string.player_tool_audio_mix)) { onAudioMix() }
+                            }
+                        }
                         // Favorite the current channel/movie/series without leaving the stream (coral
                         // heart = on, the same colour the marker has on posters and in browse rows).
                         PlayerControl.FAVOURITE -> if (onToggleFavorite != null) {
