@@ -78,18 +78,18 @@ fun MultiviewTileMenu(
                 MenuRow(stringResource(R.string.multiview_tile_fullscreen), OwnTVIcon.EXPAND, onFullscreen)
                 MenuRow(stringResource(R.string.multiview_audio_tile), OwnTVIcon.VOLUME_HIGH, onSound)
                 MenuRow(
-                    label = stringResource(R.string.player_stream_video) + " " + stringResource(R.string.player_stream_source),
+                    label = stringResource(R.string.multiview_video_source),
                     icon = OwnTVIcon.EXPAND,
                     onClick = onVideoSource,
                 )
                 MenuRow(
-                    label = stringResource(R.string.player_stream_audio) + " " + stringResource(R.string.player_stream_source),
+                    label = stringResource(R.string.multiview_audio_source),
                     icon = OwnTVIcon.HEADPHONES,
                     onClick = onAudioSource,
                 )
                 if (onRemoveAudioSource != null) {
                     MenuRow(
-                        label = stringResource(R.string.multiview_tile_show_picture),
+                        label = stringResource(R.string.multiview_remove_audio_source),
                         icon = OwnTVIcon.CLOSE,
                         onClick = onRemoveAudioSource,
                     )
