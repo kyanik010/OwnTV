@@ -62,15 +62,15 @@ runs:
         # was produced by the bump workflow.
         DEST="$RUNNER_TEMP/owntv-core"
         if [ "$FORCE" = "true" ]; then
-          CORE_REF="b683ef7a382780ef17d0321de8efacedc33a6af1"
-          echo "Cloning OwnTV_Core test commit $CORE_REF for audio-source validation"
+          CORE_REF="4598ce559fd6e220b3840af8f6a22056ffb7f962"
+          echo "Cloning kyanik010/OwnTV_Core test commit $CORE_REF for audio-source validation"
         else
           CORE_REF="core-$VERSION"
           echo "Cloning ahXN00/OwnTV_Core at $CORE_REF"
         fi
         if [ "$FORCE" = "true" ]; then
           git init "$DEST"
-          git -C "$DEST" remote add origin https://github.com/ahXN00/OwnTV_Core.git
+          git -C "$DEST" remote add origin https://github.com/kyanik010/OwnTV_Core.git
           git -C "$DEST" fetch --depth 1 origin "$CORE_REF"
           git -C "$DEST" checkout --detach FETCH_HEAD
         else
