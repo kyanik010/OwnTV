@@ -217,6 +217,7 @@ fun OwnTVShell(
         }
     }
     val mpvEngine = remember(player) { tv.own.owntv.player.MpvPlaybackEngine(player) }
+    val audioMixActive by player.audioMixEnabled.collectAsStateWithLifecycle()
     // Audio focus + MediaSession (F27). This is the only place that knows which engine currently owns
     // the speaker, so it hands that engine over and takes it back when the player closes.
     val playbackSession = koinInject<tv.own.owntv.player.PlaybackSession>()
@@ -275,6 +276,7 @@ fun OwnTVShell(
     var zapSource by remember { mutableStateOf<MainSection?>(null) }
     // In-player channel-list overlay (Left while controls hidden, live only).
     var showChannelList by remember { mutableStateOf(false) }
+    var showAudioMixList by remember { mutableStateOf(false) }
     // In-player watch-history list (Right while controls hidden, live only).
     var showHistoryList by remember { mutableStateOf(false) }
     // Multiview: the grid, while it is up, and which tile is waiting for a channel to be picked.
@@ -345,6 +347,10 @@ fun OwnTVShell(
     val historyNowPlaying by produceState<Map<Long, String>>(emptyMap(), historyChannels) {
         if (historyChannels.isEmpty()) { value = emptyMap(); return@produceState }
         value = runCatching { liveVm.nowPlayingFor(historyChannels) }.getOrDefault(emptyMap())
+    }
+    val audioMixChannels by produceState<List<ChannelEntity>>(emptyList(), showAudioMixList, previewChannel?.sourceId) {
+        if (!showAudioMixList) { value = emptyList(); return@produceState }
+        value = runCatching { liveVm.audioMixChannels() }.getOrDefault(emptyList())
     }
     // Batch 7 — the single most-recent resumable item, surfaced as a shared top-bar "Continue" chip.
     val continueTarget by homeVm.continueTarget.collectAsStateWithLifecycle()
@@ -1363,6 +1369,13 @@ fun OwnTVShell(
                     } else {
                         null
                     },
+                    onAudioMix = if (isTunedLive && previewChannel != null) {
+                        {
+                            if (audioMixActive) liveVm.clearAudioMixSource()
+                            else showAudioMixList = true
+                        }
+                    } else null,
+                    audioMixActive = audioMixActive,
                     // D3 — the button exists only once the setting is on, and only on a live
                     // channel: there is nothing to record off a film that is already a file.
                     // The engine does not come into it. Recording fetches the channel itself rather
@@ -1476,6 +1489,21 @@ fun OwnTVShell(
                 val catchupUnavailable = stringResource(R.string.content_epg_catchup_unavailable)
                 LaunchedEffect(liveVm) {
                     liveVm.catchupUnavailable.collect { localSubToast.show(catchupUnavailable) }
+                }
+                if (showAudioMixList && isLiveChannel) {
+                    tv.own.owntv.features.shell.components.ChannelListOverlay(
+                        channels = audioMixChannels.filter { it.id != previewChannel?.id },
+                        currentId = null,
+                        title = tv.own.owntv.R.string_placeholder_audio_mix_title(),
+                        showNumbers = directTuneEnabled,
+                        providerNames = liveProviderNames,
+                        onSelect = {
+                            showAudioMixList = false
+                            liveVm.setAudioMixSource(it)
+                        },
+                        onDismiss = { showAudioMixList = false },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
                 // Left — the playing channel's own provider category.
                 if (showChannelList && isLiveChannel) {
