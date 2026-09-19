@@ -126,7 +126,7 @@ jobs:
       - name: Resolve core
         uses: ./.github/actions/resolve-core
         with:
-          force-source-build: ${{ inputs.force_core_source || false }}
+          force-source-build: true
 
       # One variant, not `test`/`lint` across every flavor: standard+debug is the variant the JVM
       # tests are written against, and the ABI flavors differ only in the packaged native libs.
