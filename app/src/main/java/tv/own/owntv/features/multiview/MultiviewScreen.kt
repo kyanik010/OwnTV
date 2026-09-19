@@ -132,6 +132,11 @@ fun MultiviewScreen(
             onChangeChannel = { menuFor = null; onPickChannel(tile) },
             onFullscreen = { menuFor = null; state.tiles[tile].channel?.let(onFullscreen) },
             onSound = { menuFor = null; state.giveSoundTo(tile) },
+            onVideoSource = { menuFor = null; state.setVideoSource(tile) },
+            onAudioSource = { menuFor = null; state.setAudioSource(tile) },
+            onRemoveAudioSource = if (state.audioSourceTile != null) {
+                { menuFor = null; state.removeAudioSource() }
+            } else null,
             onSoundOnly = { menuFor = null; state.setSoundOnly(tile, tile !in state.soundOnly) },
             onRemove = { menuFor = null; state.clear(tile) },
             onDismiss = { menuFor = null },
@@ -170,7 +175,9 @@ private fun Tile(
             .focusable()
             .combinedClickable(
                 onClick = {
-                    if (tile.channel == null) onPickChannel() else state.giveSoundTo(index)
+                    if (tile.channel == null) onPickChannel()
+                    else if (state.videoSourceTile != null && state.audioSourceTile != null) onMenu()
+                    else state.giveSoundTo(index)
                 },
                 onLongClick = onMenu,
             )
@@ -189,7 +196,8 @@ private fun Tile(
                             // Held: the menu, on a filled tile or an empty one, exactly as MENU did.
                             held >= LongPressMs -> onMenu()
                             tile.channel == null -> onPickChannel()
-                            else -> state.giveSoundTo(index)
+                            else -> if (state.videoSourceTile != null && state.audioSourceTile != null) onMenu()
+                            else state.giveSoundTo(index)
                         }
                         true
                     }
