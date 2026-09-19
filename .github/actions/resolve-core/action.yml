@@ -62,7 +62,7 @@ runs:
         # was produced by the bump workflow.
         DEST="$RUNNER_TEMP/owntv-core"
         if [ "$FORCE" = "true" ]; then
-          CORE_REF="4598ce559fd6e220b3840af8f6a22056ffb7f962"
+          CORE_REF="8772355e9bdffddf5ee31cde009028be0faa97b6"
           echo "Cloning kyanik010/OwnTV_Core test commit $CORE_REF for audio-source validation"
         else
           CORE_REF="core-$VERSION"
