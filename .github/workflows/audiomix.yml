@@ -31,20 +31,13 @@ jobs:
           GST_VER="1.28.7"
           GST_BASE="$HOME/.cache/owntv-gstreamer"
           ARCHIVE="$GST_BASE/gstreamer-android-$GST_VER.tar.xz"
-          GST_MODULE="$GST_BASE/FindGStreamerMobile.cmake"
           mkdir -p "$GST_BASE"
 
-          echo "Disk before GStreamer:"
-          df -h "$HOME" "$RUNNER_TEMP"
-
-          rm -rf "$GST_BASE"/gstreamer-1.0-android-universal-* "$GST_BASE"/gstreamer-android-*.tar.xz "$GST_MODULE"
+          rm -rf "$GST_BASE"/gstreamer-1.0-android-universal-* "$GST_BASE"/gstreamer-android-*.tar.xz
 
           curl -fL --retry 8 --retry-all-errors --retry-delay 10             --connect-timeout 60 --max-time 1800             -o "$ARCHIVE"             "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
 
-          echo "Downloaded GStreamer archive:"
           ls -lh "$ARCHIVE"
-
-          echo "Testing GStreamer archive integrity..."
           xz -t "$ARCHIVE"
 
           echo "Extracting GStreamer SDK..."
@@ -53,17 +46,21 @@ jobs:
 
           FOUND_MODULE=$(find "$GST_BASE" -type f -name FindGStreamerMobile.cmake -print -quit)
           test -n "$FOUND_MODULE"
-          echo "GStreamer CMake module found at: $FOUND_MODULE"
+          echo "GStreamer CMake module: $FOUND_MODULE"
 
-          GST_DIR=$(dirname "$(dirname "$(dirname "$FOUND_MODULE")")")
-          test -d "$GST_DIR/share"
-          echo "GStreamer SDK root: $GST_DIR"
+          ARM64_DIR=$(find "$GST_BASE" -type d -path "*/arm64" -print -quit)
+          test -n "$ARM64_DIR"
+          GST_DIR=$(dirname "$ARM64_DIR")
+
+          test -f "$GST_DIR/arm64/share/gst-android/ndk-build/plugins.cmake"
+          test -f "$GST_DIR/arm64/share/cmake/FindGStreamerMobile.cmake"
+
+          echo "Resolved GStreamer SDK root: $GST_DIR"
+          find "$GST_DIR" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
 
           echo "GSTREAMER_ROOT_ANDROID=$GST_DIR" >> "$GITHUB_ENV"
           echo "gstreamerRoot=$GST_DIR" >> "$HOME/.gradle/gradle.properties"
 
-          echo "Disk after GStreamer:"
-          df -h "$HOME" "$RUNNER_TEMP"
       - name: Build Core from AudioMix source
         run: |
           set -euo pipefail
@@ -75,11 +72,13 @@ jobs:
           python3 "$DEST/tools/i18n/check_hardcoded_strings.py" prune-safe
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
           grep -n "audioMixEnable\|audioMixDisable\|audioMixExternalAid" "$DEST/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt" "$DEST/player-core/src/main/java/tv/own/owntv/player/PlaybackEngine.kt"
+
       - name: Verify AudioMix UI integration
         run: |
           set -euo pipefail
           grep -n "onAudioMix\|audioMixActive" app/src/main/java/tv/own/owntv/player/PlayerHud.kt app/src/main/java/tv/own/owntv/player/PlayerHudChrome.kt
           grep -n "showAudioMixList\|setAudioMixSource\|clearAudioMixSource" app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt app/src/main/java/tv/own/owntv/features/live/LiveViewModel.kt
+
       - name: Compile and assemble AudioMix APK
         id: build_apk
         continue-on-error: true
@@ -87,6 +86,7 @@ jobs:
           chmod +x ./gradlew
           set -o pipefail
           ./gradlew :app:assembleStandardDebug --no-daemon --stacktrace --no-build-cache --no-configuration-cache 2>&1 | tee "$RUNNER_TEMP/audiomix-build.log"
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
@@ -94,15 +94,18 @@ jobs:
           name: AudioMix-build-log
           path: ${{ runner.temp }}/audiomix-build.log
           if-no-files-found: ignore
+
       - name: Fail if build failed
         if: steps.build_apk.outcome == 'failure'
         run: exit 1
+
       - name: Locate APK
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/standard/debug -name '*.apk' -type f | head -n1)
           test -n "$APK"
           echo "APK=$APK" >> "$GITHUB_ENV"
+
       - name: Upload AudioMix APK
         uses: actions/upload-artifact@v4
         with:
