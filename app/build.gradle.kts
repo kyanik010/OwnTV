@@ -403,6 +403,10 @@ dependencies {
     // Networking
     implementation(libs.okhttp)
 
+    // Coil 3 image loading used by MainActivity and OwnTVApp.
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     // Media playback — libmpv (FFmpeg) engine
     implementation(libs.libmpv)
     implementation(libs.androidx.media3.exoplayer)
