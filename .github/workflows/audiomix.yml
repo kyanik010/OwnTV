@@ -56,6 +56,23 @@ jobs:
           git -C "$DEST" remote add origin https://github.com/kyanik010/OwnTV_Core.git
           git -C "$DEST" fetch --depth 1 origin 44cffac782313f5c5c79f113049d08ff79a89cbb
           git -C "$DEST" checkout --detach FETCH_HEAD
+
+          CORE_PLAYER="$DEST/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt"
+          python3 - "$CORE_PLAYER" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          s = p.read_text()
+          old1 = 'loadUrl(videoUrl, currentMetaSnapshot(), isLiveContent, resetRetries = false)'
+          new1 = 'loadUrl(videoUrl, currentMetaSnapshot(), isLiveContent, _position.value, resetRetries = false)'
+          count = s.count(old1)
+          if count != 2:
+              raise SystemExit(f'AudioMix loadUrl patch expected 2 matches, found {count}')
+          s = s.replace(old1, new1)
+          p.write_text(s)
+          print('Applied AudioMix loadUrl startPositionMs patch:', count)
+          PY
+
           python3 "$DEST/tools/i18n/check_hardcoded_strings.py" prune-safe
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
           grep -n "audioMixEnable\|audioMixDisable\|audioMixExternalAid" "$DEST/player-core/src/main/java/tv/own/owntv/player/OwnTVPlayer.kt" "$DEST/player-core/src/main/java/tv/own/owntv/player/PlaybackEngine.kt"
