@@ -32,32 +32,19 @@ jobs:
           GST_BASE="$HOME/.cache/owntv-gstreamer"
           ARCHIVE="$GST_BASE/gstreamer-android-$GST_VER.tar.xz"
           mkdir -p "$GST_BASE"
-
           rm -rf "$GST_BASE"/gstreamer-1.0-android-universal-* "$GST_BASE"/gstreamer-android-*.tar.xz
-
-          curl -fL --retry 8 --retry-all-errors --retry-delay 10             --connect-timeout 60 --max-time 1800             -o "$ARCHIVE"             "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
-
+          curl -fL --retry 8 --retry-all-errors --retry-delay 10 --connect-timeout 60 --max-time 1800 -o "$ARCHIVE" "https://gstreamer.freedesktop.org/pkg/android/$GST_VER/gstreamer-1.0-android-universal-$GST_VER.tar.xz"
           ls -lh "$ARCHIVE"
           xz -t "$ARCHIVE"
-
-          echo "Extracting GStreamer SDK..."
           tar -xJf "$ARCHIVE" -C "$GST_BASE"
           rm -f "$ARCHIVE"
-
           FOUND_MODULE=$(find "$GST_BASE" -type f -name FindGStreamerMobile.cmake -print -quit)
           test -n "$FOUND_MODULE"
-          echo "GStreamer CMake module: $FOUND_MODULE"
-
           ARM64_DIR=$(find "$GST_BASE" -type d -path "*/arm64" -print -quit)
           test -n "$ARM64_DIR"
           GST_DIR=$(dirname "$ARM64_DIR")
-
           test -f "$GST_DIR/arm64/share/gst-android/ndk-build/plugins.cmake"
           test -f "$GST_DIR/arm64/share/cmake/FindGStreamerMobile.cmake"
-
-          echo "Resolved GStreamer SDK root: $GST_DIR"
-          find "$GST_DIR" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
-
           echo "GSTREAMER_ROOT_ANDROID=$GST_DIR" >> "$GITHUB_ENV"
           echo "gstreamerRoot=$GST_DIR" >> "$HOME/.gradle/gradle.properties"
 
@@ -67,7 +54,7 @@ jobs:
           DEST="$RUNNER_TEMP/owntv-core"
           git init "$DEST"
           git -C "$DEST" remote add origin https://github.com/kyanik010/OwnTV_Core.git
-          git -C "$DEST" fetch --depth 1 origin 5a56facedc45316e7e2883fc6206387dd5a5051b
+          git -C "$DEST" fetch --depth 1 origin 44cffac782313f5c5c79f113049d08ff79a89cbb
           git -C "$DEST" checkout --detach FETCH_HEAD
           python3 "$DEST/tools/i18n/check_hardcoded_strings.py" prune-safe
           echo "owntv.corePath=$DEST" >> "$HOME/.gradle/gradle.properties"
